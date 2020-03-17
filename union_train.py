@@ -2,10 +2,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
-# import _init_paths
 import resnet_backbone
 import centernet_head
-# import centernet_loss
 import yolov3_head
 import union_dataset
 
@@ -35,6 +33,7 @@ train_loader = torch.utils.data.DataLoader(
     drop_last=True,
     collate_fn=union_dataset.CTDetDatasetTxt.collate_fn
 )
+
 model.train().cuda()
 
 for j in range(60):
@@ -52,3 +51,4 @@ for j in range(60):
             print(i, "------>", tloss,ctloss,ylloss)
     if j%10==0:
         torch.save(model.state_dict(), 'params_'+ str(j) +'.pkl')
+torch.save(model.state_dict(), 'params_final.pkl')

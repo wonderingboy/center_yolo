@@ -13,26 +13,25 @@ import yolov3_head
 import union_dataset
 from union_dataset import affine_transform
 from union_dataset import get_affine_transform
-from config import *
 from union_dataset import pre_process
 from yolov3_head import yl_nms
 from union_utils import merge_yl_ct_dets, parse_data_label, update_stastics
-
+from config import *
 
 class CombinationModel(nn.Module):
-    def __init__(self, backbone_layer, num_classes):
+    def __init__(self, backbone_layer, class_nums):
         super(CombinationModel, self).__init__()
         self.backbone = resnet_backbone.get_pose_net(backbone_layer)
-        self.ct_head = centernet_head.CenterNetHead(num_classes)
+        self.ct_head = centernet_head.CenterNetHead(class_nums)
         self.yolov3_head = yolov3_head.YOLOHead(
-            anchors, strides, num_classes, nx, ny)
+            anchors, strides, class_nums, nx, ny)
 
     def forward(self, inp):
         bko = self.backbone(inp)
         return self.ct_head(bko[-1]), self.yolov3_head(bko[::-1])
 
 
-model = CombinationModel(18, 1)
+model = CombinationModel(arch, class_nums)
 model.load_state_dict(torch.load(sys.argv[1]))
 model.eval().cuda()
 f = open(sys.argv[2])
@@ -54,7 +53,6 @@ for data in dataset:
     cd_dets = model.ct_head.inference(0.3, meta)
     yl_dets = model.yolov3_head.inference(0.3)
     yl_dets = yl_nms(yl_dets, meta)
-    # print(data)
     final_dets = merge_yl_ct_dets(yl_dets, cd_dets)
-    statics = update_stastics(statics, final_labels, yl_dets)
+    statics = update_stastics(statics, final_labels, final_dets)
 print(statics)
