@@ -16,33 +16,45 @@ from union_dataset import get_affine_transform
 from config import *
 from union_dataset import pre_process
 from yolov3_head import yl_nms
+from union_utils import merge_yl_ct_dets, parse_data_label, update_stastics
+
 
 class CombinationModel(nn.Module):
     def __init__(self, backbone_layer, num_classes):
         super(CombinationModel, self).__init__()
         self.backbone = resnet_backbone.get_pose_net(backbone_layer)
         self.ct_head = centernet_head.CenterNetHead(num_classes)
-        self.yolov3_head = yolov3_head.YOLOHead(anchors, stride, num_classes, nx, ny)
+        self.yolov3_head = yolov3_head.YOLOHead(
+            anchors, strides, num_classes, nx, ny)
+
     def forward(self, inp):
         bko = self.backbone(inp)
         return self.ct_head(bko[-1]), self.yolov3_head(bko[::-1])
+
+
 model = CombinationModel(18, 1)
-model.load_state_dict(torch.load('params.pkl'))
+model.load_state_dict(torch.load(sys.argv[1]))
 model.eval().cuda()
+f = open(sys.argv[2])
+dataset = f.readlines()
+f.close()
 
-img_ = cv2.imread(sys.argv[1])
-img, yl_image, meta = pre_process(img_)
-outputs = model(img.cuda())
-cd_dets = model.ct_head.inference(0.3, meta)
-yl_dets = model.yolov3_head.inference(0.3)
-yl_dets = yl_nms(yl_dets, meta)
+statics = {}
+for i in range(class_nums):
+    statics[i] = {'ground_nums': 0, 'recall_ground_nums': 0, 'detection_nums': 0, 'correct_detection_nums': 0}
 
-
-
-
-for bbox in yl_dets:
-    print(bbox)
-    cv2.rectangle(img_, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (255, 0, 0), 4)
-    cv2.putText(img_, str( bbox[5] )+':'+str(bbox[4])[:3], (bbox[0],bbox[1]), cv2.FONT_HERSHEY_DUPLEX,0.8,(255,0,0),1)
-cv2.imshow('hhh', img_)
-cv2.waitKey(-1)
+for data in dataset:
+    data = data.strip('\n')
+    data_label = data[:-3]+'txt'
+    img = cv2.imread(data)
+    height, width, _ = img.shape
+    final_labels = parse_data_label(data_label, height, width)
+    img, meta = pre_process(img)
+    _ = model(img.cuda())
+    cd_dets = model.ct_head.inference(0.3, meta)
+    yl_dets = model.yolov3_head.inference(0.3)
+    yl_dets = yl_nms(yl_dets, meta)
+    # print(data)
+    final_dets = merge_yl_ct_dets(yl_dets, cd_dets)
+    statics = update_stastics(statics, final_labels, yl_dets)
+print(statics)

@@ -187,7 +187,7 @@ def build_targets(params, targets):
         # get number of grid points and anchor vec for this yolo layer
         ng = [params['nx'][i], params['ny'][i]]
         ng = torch.Tensor(ng).cuda()
-        stride = params['stride'][i]
+        stride = params['strides'][i]
         anchor_vec = params['anchors'][i]/stride
         anchor_vec = torch.Tensor(anchor_vec)
         t, a = targets, []

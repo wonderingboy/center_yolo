@@ -16,7 +16,7 @@ class CombinationModel(nn.Module):
         super(CombinationModel, self).__init__()
         self.backbone = resnet_backbone.get_pose_net(backbone_layer)
         self.ct_head = centernet_head.CenterNetHead(num_classes)
-        self.yolov3_head = yolov3_head.YOLOHead(anchors, num_classes, nx, ny)
+        self.yolov3_head = yolov3_head.YOLOHead(anchors, strides, num_classes, nx, ny)
     def forward(self, inp):
         bko = self.backbone(inp)
         return self.ct_head(bko[-1]), self.yolov3_head(bko[::-1])

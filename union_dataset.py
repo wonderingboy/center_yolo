@@ -52,7 +52,7 @@ def pre_process(image, scale=1, meta=None):
             'out_height': inp_height // 4,
             'out_width': inp_width // 4,
             'inv_tran': inv_trans}
-    return images.float(), inp_image_, meta
+    return images.float(), meta
 
 def get_affine_transform(center,
                          scale,

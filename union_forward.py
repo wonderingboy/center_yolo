@@ -34,9 +34,9 @@ model.load_state_dict(torch.load('params.pkl'))
 model.eval().cuda()
 
 img_ = cv2.imread(sys.argv[1])
-img, yl_image, meta = pre_process(img_)
+img, meta = pre_process(img_)
 
-outputs = model(img.cuda())
+_ = model(img.cuda())
 cd_dets = model.ct_head.inference(0.3, meta)
 
 for bbox in cd_dets:
